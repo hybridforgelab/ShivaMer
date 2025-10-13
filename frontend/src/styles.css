@@ -1,0 +1,5 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.mermaid svg{width:100%;height:auto}
