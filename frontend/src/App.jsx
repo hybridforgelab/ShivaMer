@@ -18,6 +18,39 @@ const EXAMPLE = `def fizzbuzz(n):
             print(i)
 `;
 
+function MobileNotice() {
+  const [hidden, setHidden] = useState(false);
+
+  // Read localStorage only on the client after mount
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("hideMobileNotice") === "1") {
+        setHidden(true);
+      }
+    } catch {/* ignore */}
+  }, []);
+
+  if (hidden) return null;
+
+  return (
+    <div className="md:hidden fixed bottom-0 inset-x-0 z-50" role="status" aria-live="polite">
+      <div className="m-3 rounded-lg bg-amber-100 text-amber-900 p-3 shadow-lg flex items-start gap-3">
+        <p className="text-sm">
+          We’re updating our site for a better mobile experience. For now, it’s best viewed on desktop.
+        </p>
+        <button
+          onClick={() => { localStorage.setItem("hideMobileNotice", "1"); setHidden(true); }}
+          aria-label="Dismiss notice"
+          className="ml-auto px-2 py-1 text-xs rounded bg-amber-200 hover:bg-amber-300"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 export default function App() {
   const [code, setCode] = useState(EXAMPLE);
   const [diagram, setDiagram] = useState("flowchart TD\n");
@@ -48,7 +81,9 @@ export default function App() {
     }
   }
 
-  useEffect(() => { if (auto) convert(); }, [code]);
+  useEffect(() => {
+    if (auto) convert();
+  }, [code]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -57,7 +92,9 @@ export default function App() {
     const id = "m" + Math.random().toString(36).slice(2);
     mermaid
       .render(id, diagram)
-      .then(({ svg }) => { el.innerHTML = svg; })
+      .then(({ svg }) => {
+        el.innerHTML = svg;
+      })
       .catch(console.error);
   }, [diagram]);
 
@@ -83,12 +120,14 @@ export default function App() {
 
   function loadSample(name) {
     if (name === "FizzBuzz") setCode(EXAMPLE);
-    if (name === "If/Else") setCode(`age = int(input('Please enter your age: '))
+    if (name === "If/Else")
+      setCode(`age = int(input('Please enter your age: '))
 if age >= 18:
     print('Authorized')
 else:
     print('Not Authorized')`);
-    if (name === "While") setCode(`def countdown(n):
+    if (name === "While")
+      setCode(`def countdown(n):
     while n > 0:
         print(n)
         n -= 1
@@ -99,23 +138,58 @@ else:
     <div className="min-h-screen bg-gray-900 text-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-white">ShivaMer — Python → Mermaid</h1>
+          <h1 className="text-xl font-semibold text-white">
+            ShivaMer — Python → Mermaid
+          </h1>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1 text-sm">
-              <input type="checkbox" checked={auto} onChange={e => setAuto(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={auto}
+                onChange={(e) => setAuto(e.target.checked)}
+              />
               Auto
             </label>
-            <button onClick={convert} className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50 hover:bg-blue-700" disabled={loading}>
+            <button
+              onClick={convert}
+              className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50 hover:bg-blue-700"
+              disabled={loading}
+            >
               {loading ? "Converting..." : "Convert"}
             </button>
-            <button onClick={exportPNG} className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-800">Export PNG</button>
-            <button onClick={exportMMD} className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-800">Export .mmd</button>
+            <button
+              onClick={exportPNG}
+              className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-800"
+            >
+              Export PNG
+            </button>
+            <button
+              onClick={exportMMD}
+              className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-800"
+            >
+              Export .mmd
+            </button>
           </div>
         </div>
         <div className="flex gap-2 text-sm">
-          <button onClick={() => loadSample("FizzBuzz")} className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800">Example: FizzBuzz</button>
-          <button onClick={() => loadSample("If/Else")} className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800">Example: If/Else</button>
-          <button onClick={() => loadSample("While")} className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800">Example: While</button>
+          <button
+            onClick={() => loadSample("FizzBuzz")}
+            className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800"
+          >
+            Example: FizzBuzz
+          </button>
+          <button
+            onClick={() => loadSample("If/Else")}
+            className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800"
+          >
+            Example: If/Else
+          </button>
+          <button
+            onClick={() => loadSample("While")}
+            className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800"
+          >
+            Example: While
+          </button>
         </div>
         <Editor
           height="70vh"
@@ -152,7 +226,6 @@ else:
             aria-label="GitHub Repository"
             title="GitHub Repository"
           >
-            {/* GitHub mark (SVG) */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -174,6 +247,8 @@ else:
           </a>
         </div>
       </footer>
+
+      <MobileNotice />
     </div>
   );
 }
