@@ -1,7 +1,7 @@
 #  ShivaMer — Python → Mermaid Converter
 
 **ShivaMer** is a web app that converts **Python code** into **Mermaid diagrams** in real time.  
-It helps you visualize logic flow — from functions, conditions, and loops — as flowcharts you can export to **PNG** or **.mmd**.
+It helps you visualize logic flow from functions, conditions, and loops as flowcharts you can export to **PNG** or **.mmd**.
 
 ---
 
