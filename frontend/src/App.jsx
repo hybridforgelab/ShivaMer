@@ -4,7 +4,7 @@ import Editor from "react-monaco-editor";
 import * as htmlToImage from "html-to-image";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "dark" });
 
 const EXAMPLE = `def fizzbuzz(n):
     for i in range(1, n+1):
@@ -18,90 +18,98 @@ const EXAMPLE = `def fizzbuzz(n):
             print(i)
 `;
 
-function MobileNotice() {
-  const [hidden, setHidden] = useState(false);
+const DEBOUNCE_MS = 500;
 
-  // Read localStorage only on the client after mount
-  useEffect(() => {
-    try {
-      if (localStorage.getItem("hideMobileNotice") === "1") {
-        setHidden(true);
-      }
-    } catch {/* ignore */}
-  }, []);
-
-  if (hidden) return null;
-
-  return (
-    <div className="md:hidden fixed bottom-0 inset-x-0 z-50" role="status" aria-live="polite">
-      <div className="m-3 rounded-lg bg-amber-100 text-amber-900 p-3 shadow-lg flex items-start gap-3">
-        <p className="text-sm">
-          We’re updating our site for a better mobile experience. For now, it’s best viewed on desktop.
-        </p>
-        <button
-          onClick={() => { localStorage.setItem("hideMobileNotice", "1"); setHidden(true); }}
-          aria-label="Dismiss notice"
-          className="ml-auto px-2 py-1 text-xs rounded bg-amber-200 hover:bg-amber-300"
-        >
-          Dismiss
-        </button>
-      </div>
-    </div>
-  );
+async function errorMessage(resp) {
+  try {
+    const { detail } = await resp.json();
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) return detail.map((d) => d.msg).join("; ");
+  } catch {
+    /* non-JSON body, e.g. a proxy error while the API wakes up */
+  }
+  return `Conversion failed (HTTP ${resp.status}).`;
 }
-
 
 export default function App() {
   const [code, setCode] = useState(EXAMPLE);
-  const [diagram, setDiagram] = useState("flowchart TD\n");
+  const [diagram, setDiagram] = useState("");
   const [auto, setAuto] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const containerRef = useRef(null);
+  const inflight = useRef(null);
 
-  async function convert() {
+  async function convert(source = code) {
+    if (!source.trim()) {
+      setError("");
+      setDiagram("");
+      return;
+    }
+    inflight.current?.abort();
+    const ctrl = new AbortController();
+    inflight.current = ctrl;
     setLoading(true);
     try {
       const resp = await fetch(`${API_BASE}/convert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: source }),
+        signal: ctrl.signal,
       });
       if (!resp.ok) {
-        const { detail } = await resp.json();
-        alert(detail || "Conversion failed.");
+        // Keep the last good diagram on screen while the code is mid-edit.
+        setError(await errorMessage(resp));
         return;
       }
       const data = await resp.json();
+      setError("");
       setDiagram(data.mermaid);
     } catch (e) {
-      alert("Failed to connect to the API at " + API_BASE);
+      if (e.name === "AbortError") return;
+      setError(`Could not reach the API at ${API_BASE}. It may be waking up, try again in a few seconds.`);
       console.error(e);
     } finally {
-      setLoading(false);
+      if (inflight.current === ctrl) {
+        inflight.current = null;
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    if (auto) convert();
-  }, [code]);
+    if (!auto) return;
+    const t = setTimeout(() => convert(code), DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [code, auto]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    el.innerHTML = "";
+    if (!diagram) {
+      el.innerHTML = "";
+      return;
+    }
+    let cancelled = false;
     const id = "m" + Math.random().toString(36).slice(2);
     mermaid
       .render(id, diagram)
       .then(({ svg }) => {
-        el.innerHTML = svg;
+        if (!cancelled) el.innerHTML = svg;
       })
-      .catch(console.error);
+      .catch((e) => {
+        if (!cancelled) setError(`Could not render the diagram: ${e.message || e}`);
+        document.getElementById("d" + id)?.remove();
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [diagram]);
 
   async function exportPNG() {
     const el = containerRef.current;
-    if (!el) return;
-    const dataUrl = await htmlToImage.toPng(el);
+    if (!el || !diagram) return;
+    const dataUrl = await htmlToImage.toPng(el, { backgroundColor: "#1f2937" });
     const a = document.createElement("a");
     a.download = "diagram.png";
     a.href = dataUrl;
@@ -109,6 +117,7 @@ export default function App() {
   }
 
   function exportMMD() {
+    if (!diagram) return;
     const blob = new Blob([diagram], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -136,12 +145,12 @@ else:
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-xl font-semibold text-white">
             ShivaMer — Python → Mermaid
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
@@ -151,7 +160,7 @@ else:
               Auto
             </label>
             <button
-              onClick={convert}
+              onClick={() => convert()}
               className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50 hover:bg-blue-700"
               disabled={loading}
             >
@@ -171,7 +180,7 @@ else:
             </button>
           </div>
         </div>
-        <div className="flex gap-2 text-sm">
+        <div className="flex flex-wrap gap-2 text-sm">
           <button
             onClick={() => loadSample("FizzBuzz")}
             className="px-2 py-1 rounded border border-gray-500 hover:bg-gray-800"
@@ -192,7 +201,7 @@ else:
           </button>
         </div>
         <Editor
-          height="70vh"
+          height={window.innerWidth < 768 ? "45vh" : "70vh"}
           language="python"
           theme="vs-dark"
           value={code}
@@ -201,11 +210,16 @@ else:
         />
       </div>
 
-      <div className="bg-gray-800 rounded shadow p-3 overflow-auto">
+      <div className="bg-gray-800 rounded shadow p-3 overflow-auto min-w-0 min-h-[40vh] flex flex-col gap-2">
+        {error && (
+          <p role="alert" className="text-sm rounded bg-red-900/60 text-red-100 px-3 py-2">
+            {error}
+          </p>
+        )}
         <div ref={containerRef} className="mermaid" />
       </div>
 
-      <footer className="col-span-2 text-center text-gray-500 text-sm mt-6 border-t border-gray-700 pt-3">
+      <footer className="md:col-span-2 text-center text-gray-500 text-sm mt-6 border-t border-gray-700 pt-3">
         <div className="flex flex-col items-center gap-2">
           <p>
             Powered by{" "}
@@ -248,7 +262,6 @@ else:
         </div>
       </footer>
 
-      <MobileNotice />
     </div>
   );
 }
