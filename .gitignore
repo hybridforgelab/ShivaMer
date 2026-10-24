@@ -3,3 +3,9 @@ file
 backend/test.sh
 README_STEP_BY_STEP.md
 README_STEP_BY_STEP.md
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+node_modules/
+frontend/dist/
