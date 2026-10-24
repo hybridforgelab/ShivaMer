@@ -1,6 +1,7 @@
 name: Backend CI
 
 on:
+  workflow_dispatch:
   pull_request:
     paths: ["backend/**", ".github/workflows/backend.yml"]
   push:
@@ -25,3 +26,43 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: ruff check .
       - run: pytest -q
+
+  # Every backend change on main goes to Fly, then a smoke test hits the real API.
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: deploy-backend
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://api-shivamer.hybridforgelab.com/healthz
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deploy token
+        id: token
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::warning::FLY_API_TOKEN secret not set, skipping deploy (deploy manually with flyctl)."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: steps.token.outputs.present == 'true'
+      - name: Deploy to Fly
+        if: steps.token.outputs.present == 'true'
+        run: flyctl deploy --remote-only --app shivamer-backend
+      - name: Smoke test
+        if: steps.token.outputs.present == 'true'
+        run: |
+          out=$(curl -sf --retry 5 --retry-all-errors --max-time 30 -X POST \
+            https://api-shivamer.hybridforgelab.com/convert \
+            -H 'Content-Type: application/json' \
+            -d '{"code": "for i in range(3):\n    print(i)"}')
+          echo "$out"
+          echo "$out" | grep -q 'for i in range(3)'
