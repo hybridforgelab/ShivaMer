@@ -2,8 +2,8 @@
 FROM node:20 AS build
 WORKDIR /app
 COPY package*.json ./
-# no lockfile fallback
-RUN npm install --no-audit --no-fund
+# reproducible install from the lockfile
+RUN npm ci --no-audit --no-fund
 COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
