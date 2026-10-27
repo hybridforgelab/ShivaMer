@@ -91,18 +91,9 @@ Backend → `http://localhost:8000`
 
 ---
 
-##  Contributing
+## Contributing
 
-Contributions are welcome!  
-To contribute:
-
-1. Fork the repository  
-2. Create a feature branch:  
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-3. Commit and push changes  
-4. Open a Pull Request  
+Contributions are welcome! See the [contributing guide](https://github.com/hybridforgelab/.github/blob/main/CONTRIBUTING.md): open an issue first for anything bigger than a small fix, use [Conventional Commits](https://www.conventionalcommits.org/) for the pull request title, and run the backend checks (`pytest -q && ruff check .`, see *Tests and lint* above) before opening the pull request. Everyone follows the [code of conduct](https://github.com/hybridforgelab/.github/blob/main/CODE_OF_CONDUCT.md).
 
 ---
 
