@@ -93,7 +93,13 @@ Backend → `http://localhost:8000`
 
 ## Contributing
 
-Contributions are welcome! See the [contributing guide](https://github.com/hybridforgelab/.github/blob/main/CONTRIBUTING.md): open an issue first for anything bigger than a small fix, use [Conventional Commits](https://www.conventionalcommits.org/) for the pull request title, and run the backend checks (`pytest -q && ruff check .`, see *Tests and lint* above) before opening the pull request. Everyone follows the [code of conduct](https://github.com/hybridforgelab/.github/blob/main/CODE_OF_CONDUCT.md).
+Contributions are welcome! See the [contributing guide](https://github.com/hybridforgelab/.github/blob/main/CONTRIBUTING.md):
+
+- open an issue first for anything bigger than a small fix;
+- use [Conventional Commits](https://www.conventionalcommits.org/) for the pull request title;
+- run the backend checks (`pytest -q && ruff check .`, see *Tests and lint* above) before opening the pull request.
+
+Everyone follows the [code of conduct](https://github.com/hybridforgelab/.github/blob/main/CODE_OF_CONDUCT.md).
 
 ---
 
