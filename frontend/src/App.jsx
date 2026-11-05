@@ -231,6 +231,15 @@ else:
             >
               hybridforgelab.com
             </a>
+            {" · "}
+            <a
+              href="https://hybridforgelab.com/privacy.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-300"
+            >
+              Privacy
+            </a>
           </p>
           <a
             href="https://github.com/hybridforgelab/shivamer"
